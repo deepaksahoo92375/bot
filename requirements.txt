@@ -38,7 +38,7 @@ python-dotenv==1.0.1
 loguru==0.7.2
 
 # --- Utilities ---
-tenacity==8.3.0             # retry logic
+tenacity==9.1.4             # retry logic
 apscheduler==3.10.4         # scheduled tasks (backups, health checks)
 
 # --- Testing ---
