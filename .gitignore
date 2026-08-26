@@ -1,0 +1,15 @@
+.env
+*.session
+*.session-journal
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.log
+logs/
+music_library/
+backups/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

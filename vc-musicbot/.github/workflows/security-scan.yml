@@ -1,0 +1,32 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"   # weekly Monday scan
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Audit Python dependencies
+        run: pip-audit -r requirements.txt --desc
+        continue-on-error: true
+
+      - name: Scan for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified

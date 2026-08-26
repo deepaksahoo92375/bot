@@ -1,0 +1,40 @@
+services:
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    volumes:
+      - ../music_library:/app/music_library
+      - ../logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    env_file:
+      - ../.env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  redis_data:
+
+# Note: MongoDB Atlas is used as a managed cloud service (per the spec),
+# so no local mongo container is included. Use a local `mongo` service
+# here instead if you prefer self-hosted MongoDB during development.

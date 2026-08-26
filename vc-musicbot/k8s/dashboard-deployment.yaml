@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vc-music-dashboard
+  labels:
+    app: vc-music-dashboard
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vc-music-dashboard
+  template:
+    metadata:
+      labels:
+        app: vc-music-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: ghcr.io/yourname/vc-music-dashboard:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: vc-music-bot-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vc-music-dashboard-svc
+spec:
+  selector:
+    app: vc-music-dashboard
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP

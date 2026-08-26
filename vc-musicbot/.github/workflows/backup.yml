@@ -1,0 +1,38 @@
+name: Scheduled Backup
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # daily at 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run backup
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+          MONGO_DB_NAME: vc_musicbot
+          API_ID: ${{ secrets.API_ID }}
+          API_HASH: ${{ secrets.API_HASH }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          DASHBOARD_SECRET_KEY: ${{ secrets.DASHBOARD_SECRET_KEY }}
+        run: python scripts/backup.py --out-dir backups
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongo-backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 30

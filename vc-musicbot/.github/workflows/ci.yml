@@ -1,0 +1,41 @@
+name: CI - Tests & Lint
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Lint with ruff
+        run: ruff check app/ tests/
+
+      - name: Type check with mypy
+        run: mypy app/ --ignore-missing-imports
+        continue-on-error: true   # non-blocking initially; tighten later
+
+      - name: Run unit tests
+        env:
+          API_ID: "12345"
+          API_HASH: "test_hash"
+          BOT_TOKEN: "test:token"
+          OWNER_ID: "1"
+          MONGO_URI: "mongodb://localhost:27017"
+          REDIS_URL: "redis://localhost:6379"
+          DASHBOARD_SECRET_KEY: "test_secret_key_for_ci_only"
+        run: pytest tests/ -v --tb=short

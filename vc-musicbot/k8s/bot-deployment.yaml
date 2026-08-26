@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vc-music-bot
+  labels:
+    app: vc-music-bot
+spec:
+  replicas: 1   # bot is stateful re: voice chat connections — don't scale this horizontally
+  selector:
+    matchLabels:
+      app: vc-music-bot
+  template:
+    metadata:
+      labels:
+        app: vc-music-bot
+    spec:
+      containers:
+        - name: bot
+          image: ghcr.io/yourname/vc-music-bot:latest
+          envFrom:
+            - secretRef:
+                name: vc-music-bot-secrets
+          volumeMounts:
+            - name: music-library
+              mountPath: /app/music_library
+            - name: logs
+              mountPath: /app/logs
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            exec:
+              command: ["python", "-c", "import socket; socket.create_connection(('localhost', 8000), timeout=3)"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+      volumes:
+        - name: music-library
+          persistentVolumeClaim:
+            claimName: vc-music-library-pvc
+        - name: logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vc-music-library-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

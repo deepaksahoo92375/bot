@@ -1,0 +1,51 @@
+# --- Telegram ---
+pyrogram==2.0.106
+tgcrypto==1.2.5
+py-tgcalls==2.1.5
+
+# --- Async / Core ---
+asyncio-mqtt==0.16.2
+uvloop==0.19.0; sys_platform != "win32"
+
+# --- Database ---
+motor==3.4.0              # async MongoDB driver
+pymongo==4.7.0
+redis==5.0.4
+
+# --- HTTP / API clients ---
+httpx==0.27.0
+aiohttp==3.9.5
+spotipy==2.24.0            # Spotify Web API (metadata only)
+
+# --- Audio Processing ---
+ffmpeg-python==0.2.0
+pydub==0.25.1
+yt-dlp>=2024.5.1               # YouTube (and 1000+ sites) audio extraction
+
+# --- Dashboard backend ---
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+websockets==12.0
+
+# --- Config / Validation ---
+pydantic==2.7.1
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+
+# --- Logging / Monitoring ---
+loguru==0.7.2
+
+# --- Utilities ---
+tenacity==8.3.0             # retry logic
+apscheduler==3.10.4         # scheduled tasks (backups, health checks)
+
+# --- Testing ---
+pytest==8.2.0
+pytest-asyncio==0.23.6
+pytest-mock==3.14.0
+
+# --- Type Checking / Lint ---
+mypy==1.10.0
+ruff==0.4.4

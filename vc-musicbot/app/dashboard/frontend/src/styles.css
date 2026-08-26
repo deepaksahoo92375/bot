@@ -1,0 +1,368 @@
+/* ==========================================================================
+   VC Music — Control Room
+   Design tokens:
+     bg-void      #0A0C0E   deep near-black base
+     bg-panel     #14181C   raised panel surface
+     bg-panel-hi  #1C2127   hovered/active panel
+     line         #262C33   hairline dividers
+     ink          #E8ECEF   primary text
+     ink-dim      #7C8893   secondary text
+     signal       #4DFFB4   live/active pulse (mint signal-green — audio meter color)
+     signal-dim   #1F5C44   signal at rest
+     warn         #FFB454   degraded/warning
+     error        #FF5C5C   offline/error
+   Type:
+     display/UI   "Space Grotesk"  — confident, slightly technical geometric sans
+     data/mono    "JetBrains Mono" — IDs, stats, timestamps, queue positions
+   Signature:
+     The live waveform bar — a horizontal bar of animated bars representing
+     active voice-chat audio, used as the heartbeat motif across panels.
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-void: #0a0c0e;
+  --bg-panel: #14181c;
+  --bg-panel-hi: #1c2127;
+  --line: #262c33;
+  --ink: #e8ecef;
+  --ink-dim: #7c8893;
+  --signal: #4dffb4;
+  --signal-dim: #1f5c44;
+  --warn: #ffb454;
+  --error: #ff5c5c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--bg-void);
+  color: var(--ink);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ---------- Layout ---------- */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    display: none;
+  }
+}
+
+.sidebar {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--line);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.brand-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--signal);
+  box-shadow: 0 0 10px var(--signal);
+}
+
+.brand-name {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: var(--ink-dim);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.nav-item:hover {
+  background: var(--bg-panel-hi);
+  color: var(--ink);
+}
+
+.nav-item.active {
+  background: var(--bg-panel-hi);
+  color: var(--signal);
+}
+
+.main {
+  padding: 28px 36px 60px;
+  max-width: 1280px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.page-meta {
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-family: "JetBrains Mono", monospace;
+}
+
+/* ---------- Stat cards ---------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.stat-value.signal {
+  color: var(--signal);
+}
+
+/* ---------- Panels ---------- */
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.panel-body {
+  padding: 18px;
+}
+
+/* ---------- Live waveform signature ---------- */
+
+.waveform {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+}
+
+.waveform .bar {
+  width: 3px;
+  background: var(--signal);
+  border-radius: 1px;
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.waveform .bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+.waveform .bar:nth-child(2) { height: 80%; animation-delay: 0.12s; }
+.waveform .bar:nth-child(3) { height: 100%; animation-delay: 0.24s; }
+.waveform .bar:nth-child(4) { height: 60%; animation-delay: 0.36s; }
+.waveform .bar:nth-child(5) { height: 75%; animation-delay: 0.48s; }
+
+@keyframes pulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+/* ---------- Status dot ---------- */
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 7px;
+}
+
+.status-dot.online { background: var(--signal); box-shadow: 0 0 6px var(--signal); }
+.status-dot.offline { background: var(--error); }
+.status-dot.warn { background: var(--warn); }
+
+/* ---------- Table ---------- */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-dim);
+  font-weight: 500;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--line);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.empty-state {
+  padding: 40px 18px;
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 13px;
+}
+
+/* ---------- Login ---------- */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-void);
+}
+
+.login-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 36px;
+  width: 340px;
+}
+
+.login-card input {
+  width: 100%;
+  background: var(--bg-void);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  margin: 14px 0;
+}
+
+.login-card input:focus {
+  outline: 2px solid var(--signal);
+  outline-offset: 1px;
+}
+
+.btn-primary {
+  background: var(--signal);
+  color: #04140d;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.login-help {
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}

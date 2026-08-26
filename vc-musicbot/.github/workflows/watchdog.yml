@@ -1,0 +1,35 @@
+name: VC Music Bot Watchdog
+
+# Runs on a tight schedule independent of the main runner. If it detects
+# the bot is NOT currently running (e.g. the self-chain dispatch failed,
+# or GitHub had an Actions outage), it fires a fresh chain_restart event
+# so the bot recovers without manual intervention.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes
+  workflow_dispatch: {}
+
+jobs:
+  check-and-recover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if runner workflow is active
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.CHAIN_PAT }}
+        run: |
+          STATUS=$(gh api repos/${{ github.repository }}/actions/workflows/runner.yml/runs \
+            --jq '.workflow_runs[0].status' 2>/dev/null || echo "unknown")
+          echo "Latest runner.yml run status: $STATUS"
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger recovery restart if not running
+        if: steps.check.outputs.status != 'in_progress' && steps.check.outputs.status != 'queued'
+        env:
+          GH_TOKEN: ${{ secrets.CHAIN_PAT }}
+        run: |
+          echo "Bot appears to be down — triggering recovery restart"
+          gh api repos/${{ github.repository }}/dispatches \
+            -f event_type=chain_restart \
+            -f client_payload[reason]=watchdog_recovery
