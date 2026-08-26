@@ -25,7 +25,7 @@ yt-dlp>=2024.5.1               # YouTube (and 1000+ sites) audio extraction
 # --- Dashboard backend ---
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 websockets==12.0
 
