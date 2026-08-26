@@ -1,15 +1,32 @@
+# Environment / secrets
 .env
 *.session
 *.session-journal
+
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
-*.log
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Logs & data
 logs/
-music_library/
 backups/
-.vscode/
-.idea/
+music_library/*
+!music_library/.gitkeep
+
+# Node / frontend
+node_modules/
+app/dashboard/frontend/dist/
+
+# OS
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
