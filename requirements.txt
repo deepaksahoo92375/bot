@@ -43,7 +43,7 @@ apscheduler==3.10.4         # scheduled tasks (backups, health checks)
 
 # --- Testing ---
 pytest==8.2.0
-pytest-asyncio==0.23.6
+pytest-asyncio==1.4.0
 pytest-mock==3.14.0
 
 # --- Type Checking / Lint ---
