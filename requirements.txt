@@ -47,5 +47,5 @@ pytest-asyncio==0.23.6
 pytest-mock==3.14.0
 
 # --- Type Checking / Lint ---
-mypy==1.10.0
+mypy==2.3.1
 ruff==0.4.4
