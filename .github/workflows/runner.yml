@@ -43,7 +43,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r requirements.txt
         
-        name: Synchronize system time
+      - name: Synchronize system time
         run: |
           sudo timedatectl set-ntp true || true
           date -u
