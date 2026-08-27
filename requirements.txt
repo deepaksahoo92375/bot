@@ -1,7 +1,7 @@
 # --- Telegram ---
 pyrogram==2.0.30
 tgcrypto==1.2.5
-py-tgcalls==2.2.11
+py-tgcalls==2.3.3
 
 # --- Async / Core ---
 asyncio-mqtt==0.16.2
