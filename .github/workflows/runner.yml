@@ -34,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install ffmpeg
@@ -55,8 +55,6 @@ jobs:
           SUDO_USERS: ${{ secrets.SUDO_USERS }}
           MONGO_URI: ${{ secrets.MONGO_URI }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
-          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           DASHBOARD_SECRET_KEY: ${{ secrets.DASHBOARD_SECRET_KEY }}
           GITHUB_TOKEN: ${{ secrets.CHAIN_PAT }}   # needs a PAT with repo/dispatch scope, not the default GITHUB_TOKEN
           GITHUB_REPOSITORY: ${{ github.repository }}
