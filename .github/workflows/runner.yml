@@ -47,6 +47,16 @@ jobs:
         run: |
           sudo timedatectl set-ntp true || true
           date -u
+      - name: Check PyTgCalls API
+        run: |
+          python - <<'PY'
+          from pytgcalls import PyTgCalls
+
+          print("PyTgCalls methods:")
+          for name in dir(PyTgCalls):
+              if "stream" in name.lower() or "call" in name.lower():
+                  print(name)
+          PY
 
       - name: Run bot (self-chaining)
         env:
