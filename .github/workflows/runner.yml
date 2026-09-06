@@ -2,30 +2,31 @@ name: VC Music Bot Runner
 
 # This workflow runs the bot. It is triggered:
 #   - on a schedule (initial/periodic kickoff)
-#   - by repository_dispatch (self-chained restart from the previous run,
-#     fired by app/services/workflow_chainer.py before the 6h limit)
+#   - by repository_dispatch (self-chained restart from the previous run)
 #   - manually via workflow_dispatch
 #
 # GitHub Actions hard-kills jobs at 6 hours. The bot itself monitors its
-# own elapsed runtime and triggers the NEXT run (via this same dispatch
-# event) a few minutes before that limit, persisting handoff state to
-# Redis so the new run resumes active voice chats/queues with minimal gap.
+# own elapsed runtime and triggers the NEXT run before that limit,
+# persisting handoff state to Redis so the new run resumes active voice
+# chats/queues with minimal gap.
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # safety-net kickoff every 6h in case chaining fails
+    - cron: "0 */6 * * *"
+
   repository_dispatch:
     types: [chain_restart]
+
   workflow_dispatch: {}
 
 concurrency:
   group: vc-music-bot-runner
-  cancel-in-progress: false   # never cancel a live run — let it hand off cleanly
+  cancel-in-progress: false
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 355   # just under 6h; leaves buffer for clean shutdown logging
+    timeout-minutes: 355
 
     steps:
       - name: Checkout repository
@@ -38,15 +39,19 @@ jobs:
           cache: "pip"
 
       - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
-        
+        run: |
+          pip install -r requirements.txt
+
       - name: Synchronize system time
         run: |
           sudo timedatectl set-ntp true || true
           date -u
+
       - name: Check PyTgCalls API
         run: |
           python - <<'PY'
@@ -58,24 +63,69 @@ jobs:
                   print(name)
           PY
 
+      # ---------------------------------------------------------------
+      # YouTube cookies
+      #
+      # The cookie contents are stored only in GitHub Secrets.
+      # A temporary cookies.txt is created on the runner.
+      # ---------------------------------------------------------------
+      - name: Create YouTube cookies file
+        env:
+          YOUTUBE_COOKIES_B64: ${{ secrets.YOUTUBE_COOKIES_B64 }}
+        run: |
+          if [ -z "$YOUTUBE_COOKIES_B64" ]; then
+            echo "YOUTUBE_COOKIES_B64 secret is not configured."
+            exit 1
+          fi
+
+          printf '%s' "$YOUTUBE_COOKIES_B64" | base64 --decode > youtube_cookies.txt
+          chmod 600 youtube_cookies.txt
+
+          echo "YouTube cookies file created successfully."
+
+      - name: Verify YouTube cookies file
+        run: |
+          if [ ! -s youtube_cookies.txt ]; then
+            echo "YouTube cookies file is empty."
+            exit 1
+          fi
+
+          echo "YouTube cookies file exists and is non-empty."
+
       - name: Run bot (self-chaining)
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
           ASSISTANT_SESSION_1: ${{ secrets.ASSISTANT_SESSION_1 }}
           ASSISTANT_SESSION_2: ${{ secrets.ASSISTANT_SESSION_2 }}
           ASSISTANT_SESSION_3: ${{ secrets.ASSISTANT_SESSION_3 }}
+
           OWNER_ID: ${{ secrets.OWNER_ID }}
           SUDO_USERS: ${{ secrets.SUDO_USERS }}
+
           MONGO_URI: ${{ secrets.MONGO_URI }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
+
           DASHBOARD_SECRET_KEY: ${{ secrets.DASHBOARD_SECRET_KEY }}
-          GITHUB_TOKEN: ${{ secrets.CHAIN_PAT }}   # needs a PAT with repo/dispatch scope, not the default GITHUB_TOKEN
+
+          GITHUB_TOKEN: ${{ secrets.CHAIN_PAT }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+
           CHAIN_TRIGGER_BEFORE_MIN: "15"
           LOG_LEVEL: "INFO"
+
         run: python -m app.main
+
+      # ---------------------------------------------------------------
+      # Always remove the temporary YouTube cookie file.
+      # ---------------------------------------------------------------
+      - name: Remove YouTube cookies
+        if: always()
+        run: |
+          rm -f youtube_cookies.txt
+          echo "Temporary YouTube cookies removed."
 
       - name: Upload logs as artifact
         if: always()
