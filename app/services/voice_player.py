@@ -40,6 +40,7 @@ except Exception:
 
 
 from pytgcalls import PyTgCalls
+from pytgcalls import filters as fl
 from pytgcalls.types import MediaStream
 from pytgcalls.types.stream import StreamEnded
 
@@ -79,6 +80,7 @@ class VoiceChatPlayer:
 
         The assistant_pool must already be started before this method runs.
         """
+
         self._calls.clear()
 
         for worker in assistant_pool.workers:
@@ -92,9 +94,32 @@ class VoiceChatPlayer:
 
                 await call_binding.start()
 
-                call_binding.on_stream_end()(
-                    self._make_stream_end_handler(worker.label)
-                )
+                # ----------------------------------------------------------------
+                # PyTgCalls 2.2.x event API
+                #
+                # PyTgCalls 2.2.11 does NOT provide:
+                #
+                #     call_binding.on_stream_end()
+                #
+                # Stream-ended events are registered through:
+                #
+                #     call_binding.on_update(fl.stream_end())
+                # ----------------------------------------------------------------
+
+                @call_binding.on_update(fl.stream_end())
+                async def stream_end_handler(
+                    _client: PyTgCalls,
+                    update: StreamEnded,
+                    assistant_label: str = worker.label,
+                ) -> None:
+                    handler = self._make_stream_end_handler(
+                        assistant_label
+                    )
+
+                    await handler(
+                        _client,
+                        update,
+                    )
 
                 self._calls[worker.label] = call_binding
 
@@ -126,6 +151,13 @@ class VoiceChatPlayer:
         )
 
     def _make_stream_end_handler(self, assistant_label: str):
+        """
+        Create the handler that runs when a stream finishes.
+
+        The handler advances the queue automatically. If there is no
+        next track, _advance_queue() will leave the voice chat.
+        """
+
         async def handler(
             _client: PyTgCalls,
             update: StreamEnded,
@@ -143,6 +175,7 @@ class VoiceChatPlayer:
                     chat_id,
                     assistant_label,
                 )
+
             except Exception as exc:  # noqa: BLE001
                 logger.exception(
                     "Failed to advance queue | chat_id={} error={}",
@@ -162,6 +195,7 @@ class VoiceChatPlayer:
 
         Returns the assistant label handling this chat.
         """
+
         lock = self._get_chat_lock(chat_id)
 
         async with lock:
@@ -203,7 +237,10 @@ class VoiceChatPlayer:
 
             except Exception:
                 # Roll back assignment if joining/playing failed.
-                self._chat_assistant.pop(chat_id, None)
+                self._chat_assistant.pop(
+                    chat_id,
+                    None,
+                )
 
                 try:
                     await group_repo.set_assistant(
@@ -221,7 +258,9 @@ class VoiceChatPlayer:
                     pass
 
                 try:
-                    await assistant_pool.release(label)
+                    await assistant_pool.release(
+                        label,
+                    )
                 except Exception:
                     pass
 
@@ -241,7 +280,9 @@ class VoiceChatPlayer:
         chat_id: int,
         track: Track,
     ) -> None:
-        call = self._calls.get(assistant_label)
+        call = self._calls.get(
+            assistant_label,
+        )
 
         if call is None:
             raise RuntimeError(
@@ -273,12 +314,16 @@ class VoiceChatPlayer:
         self,
         chat_id: int,
     ) -> Track | None:
-        label = self._chat_assistant.get(chat_id)
+        label = self._chat_assistant.get(
+            chat_id,
+        )
 
         if label is None:
             return None
 
-        lock = self._get_chat_lock(chat_id)
+        lock = self._get_chat_lock(
+            chat_id,
+        )
 
         async with lock:
             return await self._advance_queue(
@@ -293,10 +338,15 @@ class VoiceChatPlayer:
         assistant_label: str,
         force: bool = False,
     ) -> Track | None:
-        next_track = await queue_engine.pop_next(chat_id)
+        next_track = await queue_engine.pop_next(
+            chat_id,
+        )
 
         if next_track is None:
-            await self.leave(chat_id)
+            await self.leave(
+                chat_id,
+            )
+
             return None
 
         try:
@@ -305,12 +355,14 @@ class VoiceChatPlayer:
                 chat_id,
                 next_track,
             )
+
         except Exception:
             logger.exception(
                 "Failed to play next track | chat_id={} assistant={}",
                 chat_id,
                 assistant_label,
             )
+
             raise
 
         return next_track
@@ -319,17 +371,23 @@ class VoiceChatPlayer:
         self,
         chat_id: int,
     ) -> bool:
-        label = self._chat_assistant.get(chat_id)
+        label = self._chat_assistant.get(
+            chat_id,
+        )
 
         if not label:
             return False
 
-        call = self._calls.get(label)
+        call = self._calls.get(
+            label,
+        )
 
         if call is None:
             return False
 
-        await call.pause(chat_id)
+        await call.pause(
+            chat_id,
+        )
 
         return True
 
@@ -337,17 +395,23 @@ class VoiceChatPlayer:
         self,
         chat_id: int,
     ) -> bool:
-        label = self._chat_assistant.get(chat_id)
+        label = self._chat_assistant.get(
+            chat_id,
+        )
 
         if not label:
             return False
 
-        call = self._calls.get(label)
+        call = self._calls.get(
+            label,
+        )
 
         if call is None:
             return False
 
-        await call.resume(chat_id)
+        await call.resume(
+            chat_id,
+        )
 
         return True
 
@@ -356,19 +420,26 @@ class VoiceChatPlayer:
         chat_id: int,
         volume: int,
     ) -> bool:
-        label = self._chat_assistant.get(chat_id)
+        label = self._chat_assistant.get(
+            chat_id,
+        )
 
         if not label:
             return False
 
-        call = self._calls.get(label)
+        call = self._calls.get(
+            label,
+        )
 
         if call is None:
             return False
 
         volume = max(
             0,
-            min(200, volume),
+            min(
+                200,
+                volume,
+            ),
         )
 
         await call.change_volume_call(
@@ -390,11 +461,15 @@ class VoiceChatPlayer:
         if label is None:
             return
 
-        call = self._calls.get(label)
+        call = self._calls.get(
+            label,
+        )
 
         if call is not None:
             try:
-                await call.leave_call(chat_id)
+                await call.leave_call(
+                    chat_id,
+                )
 
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
@@ -404,7 +479,10 @@ class VoiceChatPlayer:
                 )
 
         try:
-            await assistant_pool.release(label)
+            await assistant_pool.release(
+                label,
+            )
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to release assistant | assistant={} error={}",
@@ -417,6 +495,7 @@ class VoiceChatPlayer:
                 chat_id,
                 None,
             )
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to clear group assistant | chat_id={} error={}",
@@ -428,6 +507,7 @@ class VoiceChatPlayer:
             await redis_manager.unregister_active_chat(
                 chat_id,
             )
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to unregister active chat | chat_id={} error={}",
@@ -436,7 +516,10 @@ class VoiceChatPlayer:
             )
 
         try:
-            await queue_engine.clear(chat_id)
+            await queue_engine.clear(
+                chat_id,
+            )
+
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to clear queue | chat_id={} error={}",
@@ -461,10 +544,14 @@ class VoiceChatPlayer:
         to resume voice chats that were active before the previous job
         was killed.
         """
+
         active = await redis_manager.get_active_chats()
 
         if not active:
-            logger.info("No active voice chats to restore")
+            logger.info(
+                "No active voice chats to restore"
+            )
+
             return
 
         logger.info(
@@ -474,10 +561,14 @@ class VoiceChatPlayer:
 
         for chat_id, data in active.items():
             try:
-                label = data.get("assistant")
+                label = data.get(
+                    "assistant"
+                )
 
                 worker = (
-                    assistant_pool.get_by_label(label)
+                    assistant_pool.get_by_label(
+                        label
+                    )
                     if label
                     else None
                 )
@@ -488,13 +579,16 @@ class VoiceChatPlayer:
 
                 self._chat_assistant[chat_id] = label
 
-                next_track = await queue_engine.peek_next(chat_id)
+                next_track = await queue_engine.peek_next(
+                    chat_id
+                )
 
                 if next_track is None:
                     logger.info(
                         "No queued track to restore | chat_id={}",
                         chat_id,
                     )
+
                     continue
 
                 await self._play_track(
