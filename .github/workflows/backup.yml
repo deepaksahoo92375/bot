@@ -31,7 +31,7 @@ jobs:
         run: python scripts/backup.py --out-dir backups
 
       - name: Upload backup artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mongo-backup-${{ github.run_id }}
           path: backups/
